@@ -17,10 +17,14 @@ const connection = mysql.createConnection({
   port: process.env.DB_PORT
 });
 
+
 connection.connect(error => {
   if (error) throw error;
   console.log("Successfully connected to the database.");
 });
+
+
+
 
 app.set('view engine', 'ejs')
 app.set('views', './views')
@@ -62,35 +66,66 @@ app.get('/profile', (req, res) => {
     connection.query(sql, [name, phone, email, memo], function(err, result) {
         if (err) throw err;
         console.log('자료 1개를 삽입하였습니다.');
-        res.send("<script> alert('문의사항이 등록되었습니다.'); location.href='/'; </script>");
+        res.send("<script> alert('문의사항이 등록되었습니다.'); location.href='/contactList'; </script>");
     });
 
 
   })
 
   // 값 출력
-  app.get('/contactList', (req, res) => {
+  const moment = require('moment-timezone');
 
-    let sql = `select * from contact order by id desc`
+  app.get('/contactList', (req, res) => {
+    let sql = `SELECT * FROM contact ORDER BY id DESC`;
     connection.query(sql, function(err, results, fields){
       if (err) throw err;
       
-      res.render('contactList', {lists:results});
-
-    })
-
-    
-  })
+      const formattedResults = results.map(item => {
+        item.regdate = moment(item.regdate).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss');
+        return item;
+      });
+  
+      res.render('contactList', {lists: formattedResults});
+    });
+  });
+  
 
   // 값 삭제
   app.get('/contactDelete', (req, res) => {
-
     let idx = req.query.idx
-    let sql = `delete from contact where id='${idx}'`
-    connection.query(sql, function(err, result) {
+    let sql = `DELETE FROM contact WHERE id = ?`;
+    connection.query(sql, [idx], function(err, result) {
       if (err) throw err;
       res.send("<script> alert('삭제되었습니다.'); location.href='/contactList'; </script>");
+    });
   });
+
+  // 로그인
+  app.get('/login', (req, res) => {
+    res.render('login')
+  })
+
+  app.post('/loginProc', (req, res) => {
+    
+    const user_id = req.body.user_id;
+    const pw = req.body.pw;
+
+
+  let sql = `SELECT * FROM member where user_id=? and pw=?`;
+
+  let values = [user_id, pw];
+
+    connection.query(sql, values, function(err, result) {
+        if (err) throw err;
+        if(result.length == 0){
+          res.send("<script> alert('존재하지 않는 아이디입니다.'); location.href='/login'; </script>");
+        }else{
+          res.send(result);
+        }
+        
+    });
+
+
   })
 
 
