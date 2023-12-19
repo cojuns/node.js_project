@@ -5,6 +5,8 @@ const port = 3000
 
 var bodyParser = require('body-parser')
 
+var session = require('express-session')
+
 // 환경 변수 로드
 require('dotenv').config();
 
@@ -35,9 +37,30 @@ app.use(bodyParser.urlencoded({ extended: false }))
 // 정적 파일 (이미지)
 app.use(express.static(__dirname + '/public'));
 
+// 세션
+app.use(session({secret: 'cojun', cookie:{maxAge: 60000}, resave:true, saveUninitialized:true}))
+
+// locals 미들웨어 (변수 공유) (로그인 정보) 
+app.use(function (req, res, next) {
+
+  res.locals.user_id = ""
+  res.locals.name = ""
+
+  if(req.session.member){
+  res.locals.user_id = req.session.member.user_id
+  res.locals.name = req.session.member.name
+  }
+  next()
+})
+
 // 라우터
 app.get('/', (req, res) => {
+
+  // 로그인 정보 확인
+  console.log(req.session.member);
+
   res.render('index') // ./view/index.ejs
+
 })
 
 app.get('/profile', (req, res) => {
@@ -120,13 +143,30 @@ app.get('/profile', (req, res) => {
         if(result.length == 0){
           res.send("<script> alert('존재하지 않는 아이디입니다.'); location.href='/login'; </script>");
         }else{
-          res.send(result);
+          console.log(result[0]);
+
+          req.session.member = result[0]
+          
+          res.send("<script> alert('로그인 되었습니다.'); location.href='/'; </script>");
+            
         }
         
     });
 
-
   })
+
+  // 로그아웃 ( destroy 세션 파기 )
+  app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+      if (err) {
+        // 오류 처리
+        return res.status(500).send({ error: '로그아웃 중 오류 발생' });
+      }
+      // 성공 응답 전송
+      res.send({ success: true });
+    });
+  });
+  
 
 
 app.listen(port, () => {
