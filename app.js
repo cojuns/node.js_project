@@ -25,7 +25,11 @@ connection.connect(error => {
 app.set('view engine', 'ejs')
 app.set('views', './views')
 
+
 app.use(bodyParser.urlencoded({ extended: false }))
+
+// 정적 파일 (이미지)
+app.use(express.static(__dirname + '/public'));
 
 // 라우터
 app.get('/', (req, res) => {
@@ -52,6 +56,7 @@ app.get('/profile', (req, res) => {
     const email = req.body.email;
     const memo = req.body.memo;
 
+  // 자료 데이터베이스에 삽입
     let sql = `INSERT INTO contact(name, phone, email, memo, regdate) VALUES (?, ?, ?, ?, NOW())`;
 
     connection.query(sql, [name, phone, email, memo], function(err, result) {
@@ -62,6 +67,32 @@ app.get('/profile', (req, res) => {
 
 
   })
+
+  // 값 출력
+  app.get('/contactList', (req, res) => {
+
+    let sql = `select * from contact order by id desc`
+    connection.query(sql, function(err, results, fields){
+      if (err) throw err;
+      
+      res.render('contactList', {lists:results});
+
+    })
+
+    
+  })
+
+  // 값 삭제
+  app.get('/contactDelete', (req, res) => {
+
+    let idx = req.query.idx
+    let sql = `delete from contact where id='${idx}'`
+    connection.query(sql, function(err, result) {
+      if (err) throw err;
+      res.send("<script> alert('삭제되었습니다.'); location.href='/contactList'; </script>");
+  });
+  })
+
 
 app.listen(port, () => {
   console.log(`서버가 실행되었습니다. 접속주소 : http://localhost: ${port}`)
