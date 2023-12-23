@@ -99,18 +99,42 @@ app.get('/profile', (req, res) => {
   const moment = require('moment-timezone');
 
   app.get('/contactList', (req, res) => {
-    let sql = `SELECT * FROM contact ORDER BY id DESC`;
-    connection.query(sql, function(err, results, fields){
-      if (err) throw err;
-      
-      const formattedResults = results.map(item => {
-        item.regdate = moment(item.regdate).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss');
-        return item;
-      });
+    let page = req.query.page ? parseInt(req.query.page) : 1;
+    const pageSize = 10;
+    let searchTerm = req.query.searchTerm || ''; // 검색어 추가
+    let sqlCount = `SELECT COUNT(*) AS total FROM contact WHERE name LIKE ?`;
+    let sql = `SELECT * FROM contact WHERE name LIKE ? ORDER BY id DESC LIMIT ?, ?`;
   
-      res.render('contactList', {lists: formattedResults});
+    let likeTerm = `%${searchTerm}%`;
+  
+    connection.query(sqlCount, [likeTerm], function(err, data) {
+      if (err) throw err;
+  
+      let total = data[0].total;
+      let pageCount = Math.ceil(total / pageSize);
+      let start = (page - 1) * pageSize;
+  
+      connection.query(sql, [likeTerm, start, pageSize], function(err, results, fields){
+        if (err) throw err;
+        
+        const formattedResults = results.map(item => {
+          item.regdate = moment(item.regdate).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss');
+          return item;
+        });
+        
+        res.render('contactList', {
+          lists: formattedResults,
+          currentPage: page,
+          pageCount: pageCount,
+          pageSize: pageSize,
+          total: total,
+          searchTerm: searchTerm
+        });
+      });
     });
   });
+  
+  
   
 
   // 값 삭제

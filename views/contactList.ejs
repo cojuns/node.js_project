@@ -30,4 +30,34 @@
 
     </table>
 
+    <!-- 검색 폼 -->
+<form action="/contactList" method="get">
+    <input type="text" name="searchTerm" placeholder="Search">
+    <button type="submit">Search</button>
+  </form>
+
+
+<!-- 페이지 네비게이션 -->
+<div>
+    <% 
+    let startPage = Math.max(1, currentPage - 2); // 현재 페이지에서 2 빼기
+    let endPage = Math.min(pageCount, startPage + 4); // 시작 페이지에서 4 더하기
+  
+    <!-- // 이전 페이지 링크 -->
+    if(currentPage > 1) { %>
+      <a href="/contactList?page=<%= currentPage - 1 %>&searchTerm=<%= searchTerm %>"><</a>
+    <% }
+  
+    for(let i = startPage; i <= endPage; i++) { %>
+      <a href="/contactList?page=<%= i %>&searchTerm=<%= searchTerm %>"><%= i %></a>
+    <% }
+  
+    <!-- 다음 페이지 링크 -->
+    if(currentPage < pageCount) { %>
+      <a href="/contactList?page=<%= currentPage + 1 %>&searchTerm=<%= searchTerm %>">></a>
+    <% }
+    %>
+  </div>
+  
+
 <%-include('footer.ejs')%>
