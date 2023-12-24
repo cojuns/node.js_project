@@ -101,20 +101,31 @@ app.get('/profile', (req, res) => {
   app.get('/contactList', (req, res) => {
     let page = req.query.page ? parseInt(req.query.page) : 1;
     const pageSize = 10;
-    let searchTerm = req.query.searchTerm || ''; // 검색어 추가
-    let sqlCount = `SELECT COUNT(*) AS total FROM contact WHERE name LIKE ?`;
-    let sql = `SELECT * FROM contact WHERE name LIKE ? ORDER BY id DESC LIMIT ?, ?`;
+    let searchTerm = req.query.searchTerm || '';
+    let searchType = req.query.searchType || 'all';
+    let sqlCount, sql;
   
     let likeTerm = `%${searchTerm}%`;
   
-    connection.query(sqlCount, [likeTerm], function(err, data) {
-      if (err) throw err;
+    if (searchType === 'all') {
+      sqlCount = `SELECT COUNT(*) AS total FROM contact WHERE name LIKE ? OR memo LIKE ?`;
+      sql = `SELECT * FROM contact WHERE name LIKE ? OR memo LIKE ? ORDER BY id DESC LIMIT ?, ?`;
+    } else if (searchType === 'name') {
+      sqlCount = `SELECT COUNT(*) AS total FROM contact WHERE name LIKE ?`;
+      sql = `SELECT * FROM contact WHERE name LIKE ? ORDER BY id DESC LIMIT ?, ?`;
+    } else if (searchType === 'memo') {
+      sqlCount = `SELECT COUNT(*) AS total FROM contact WHERE memo LIKE ?`;
+      sql = `SELECT * FROM contact WHERE memo LIKE ? ORDER BY id DESC LIMIT ?, ?`;
+    }
   
+    connection.query(sqlCount, searchType === 'all' ? [likeTerm, likeTerm] : [likeTerm], function(err, data) {
+      if (err) throw err;
+      
       let total = data[0].total;
       let pageCount = Math.ceil(total / pageSize);
       let start = (page - 1) * pageSize;
   
-      connection.query(sql, [likeTerm, start, pageSize], function(err, results, fields){
+      connection.query(sql, searchType === 'all' ? [likeTerm, likeTerm, start, pageSize] : [likeTerm, start, pageSize], function(err, results) {
         if (err) throw err;
         
         const formattedResults = results.map(item => {
